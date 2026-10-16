@@ -1,6 +1,7 @@
 // Entry point. Defines the components, then resolves where the locker lives.
 import { fetchPublishedEnvelope } from './core/persistence.ts';
 import { store } from './ui/context.ts';
+import './ui/appearance.ts';
 import './components/toast.ts';
 import './components/app.ts';
 

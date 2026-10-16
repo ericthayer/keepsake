@@ -74,7 +74,7 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --paper: #0d1118;
     --page: #151a23;
@@ -96,6 +96,7 @@
     color-scheme: dark;
   }
 }
+@media screen {
 :root[data-theme='dark'] {
   --paper: #0d1118;
   --page: #151a23;
@@ -115,6 +116,7 @@
   --danger-soft: #341816;
   --scrim: rgb(0 0 0 / 0.6);
   color-scheme: dark;
+}
 }
 
 *,

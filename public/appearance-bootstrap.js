@@ -1,0 +1,1 @@
+(function(){try{var p=localStorage.getItem("life-locker.appearance");if(p!=="light"&&p!=="dark"&&p!=="system")p="system";document.documentElement.dataset.theme=p}catch(_){document.documentElement.dataset.theme="system"}})();

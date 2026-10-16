@@ -14,6 +14,7 @@ import { pageHead, VaultView } from '../ui/view.ts';
 import { confirmAction } from './confirm.ts';
 import { passphraseField, passphraseStyles } from './passphrase-field.ts';
 import { announce } from './toast.ts';
+import { appearanceControl } from '../ui/appearance.ts';
 
 const styles = css`
   section { padding-top: var(--space-4); border-top: 2px solid var(--ink); }
@@ -28,6 +29,9 @@ const styles = css`
   .danger { border-top-color: var(--danger); }
   .inline-select { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
   .inline-select select { width: auto; }
+  .appearance-control { display: grid; gap: var(--space-2); max-width: 20rem; }
+  .appearance-control label { font-weight: 650; }
+  .appearance-control select { width: 100%; }
 `;
 
 export class SettingsElement extends VaultView {
@@ -40,10 +44,21 @@ export class SettingsElement extends VaultView {
       'div',
       { class: 'view' },
       pageHead('Settings', 'Locker settings', h('p', { class: 'muted' }, 'Your letter, your passphrase, and how your family gets a copy.')),
+      this.#appearance(),
       this.#about(vault),
       mode === 'demo' ? null : this.#backup(vault, mode),
       mode === 'demo' ? null : this.#security(vault),
       mode === 'device' ? this.#erase() : null,
+    );
+  }
+
+  #appearance(): HTMLElement {
+    return h(
+      'section',
+      { 'aria-labelledby': 'appearance-title' },
+      h('h2', { id: 'appearance-title' }, 'Appearance'),
+      h('p', null, 'Choose the theme that feels easiest to read. System follows this device.'),
+      appearanceControl(),
     );
   }
 

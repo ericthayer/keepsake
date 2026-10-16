@@ -54,6 +54,11 @@ export const shellStyles = css`
   .tab[aria-current='page'] .icon { color: var(--signature); }
   .tab .count { margin-left: auto; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-3); font-weight: 400; }
   .group-label { padding: var(--space-4) var(--space-3) var(--space-1); }
+  .appearance-slot { margin: var(--space-4) var(--space-3) 0; padding-top: var(--space-3); border-top: 1px solid var(--rule); }
+  .appearance-control { display: grid; gap: var(--space-1); color: var(--ink-2); font-size: var(--step--1); }
+  .appearance-control label { font-weight: 650; }
+  .appearance-control select { min-width: 0; width: 100%; padding: var(--space-2) var(--space-3); color: var(--ink); background: var(--page); border: 1px solid var(--rule-strong); border-radius: var(--radius-1); font: inherit; }
+  .appearance-control select:focus-visible { outline: 3px solid var(--signature); outline-offset: 2px; }
 
   main {
     min-width: 0;

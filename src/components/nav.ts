@@ -5,6 +5,7 @@ import { CATEGORIES } from '../core/schema.ts';
 import type { IconName, Vault } from '../core/types.ts';
 import { h } from '../ui/dom.ts';
 import { icon } from '../ui/icons.ts';
+import { appearanceControl } from '../ui/appearance.ts';
 
 function tab(route: Route, current: Route, label: string, iconName: IconName, count?: number): HTMLLIElement {
   return h(
@@ -43,6 +44,7 @@ export function renderNav(vault: Vault, current: Route): HTMLElement {
         ),
       ),
       tab({ name: 'settings' }, current, 'Settings', 'settings'),
+      h('li', { class: 'appearance-slot' }, appearanceControl()),
     ),
   );
 }
