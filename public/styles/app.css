@@ -1,0 +1,171 @@
+/* Life Locker — master template tokens.
+   Layout concept: a ledger binder. A tabbed index of sections on the left, one ruled
+   page on the right, entries set as ledger rows rather than floating cards.
+   Accent is ballpoint "signature blue": originals of wills are signed in blue ink. */
+
+@font-face {
+  font-family: 'Public Sans';
+  src: url('../fonts/public-sans.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Mono';
+  src: url('../fonts/atkinson-hyperlegible-mono.woff2') format('woff2');
+  font-weight: 200 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Libre Caslon Display';
+  src: url('../fonts/libre-caslon-display.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  /* Color — light */
+  --paper: #eef0f3;
+  --page: #ffffff;
+  --ink: #141a24;
+  --ink-2: #4a5464;
+  --ink-3: #5f6878;
+  --rule: #d9dde4;
+  --rule-strong: #b5bcc8;
+  --signature: #2338b5;
+  --signature-ink: #ffffff;
+  --signature-soft: #e7eaf9;
+  --ok: #1d6a44;
+  --ok-soft: #e1f1e8;
+  --warn: #8a4a00;
+  --warn-soft: #fcefdc;
+  --danger: #a3261c;
+  --danger-soft: #fae4e1;
+  --scrim: rgb(14 18 26 / 0.45);
+
+  /* Type */
+  --font-display: 'Libre Caslon Display', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-ui: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --step--1: 0.875rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.25rem;
+  --step-2: 1.5rem;
+  --step-3: 2rem;
+  --step-4: clamp(2.25rem, 1.6rem + 2.4vw, 3rem);
+  --step-5: clamp(2.75rem, 1.8rem + 3.6vw, 4rem);
+  --leading: 1.55;
+
+  /* Space, shape, motion */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --radius-1: 3px;
+  --radius-2: 6px;
+  --measure: 65ch;
+  --rail: 17rem;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 180ms;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #0d1118;
+    --page: #151a23;
+    --ink: #e7eaf0;
+    --ink-2: #a3acbb;
+    --ink-3: #848d9c;
+    --rule: #262d39;
+    --rule-strong: #3b4453;
+    --signature: #9aa9ff;
+    --signature-ink: #0d1118;
+    --signature-soft: #1d2448;
+    --ok: #74d3a0;
+    --ok-soft: #12291d;
+    --warn: #f2b660;
+    --warn-soft: #2e2210;
+    --danger: #ff9389;
+    --danger-soft: #341816;
+    --scrim: rgb(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --paper: #0d1118;
+  --page: #151a23;
+  --ink: #e7eaf0;
+  --ink-2: #a3acbb;
+  --ink-3: #848d9c;
+  --rule: #262d39;
+  --rule-strong: #3b4453;
+  --signature: #9aa9ff;
+  --signature-ink: #0d1118;
+  --signature-soft: #1d2448;
+  --ok: #74d3a0;
+  --ok-soft: #12291d;
+  --warn: #f2b660;
+  --warn-soft: #2e2210;
+  --danger: #ff9389;
+  --danger-soft: #341816;
+  --scrim: rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 var(--step-0) / var(--leading) var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.boot {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+  color: var(--ink-2);
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+}
+
+noscript p {
+  max-width: var(--measure);
+  margin: var(--space-7) auto;
+  padding-inline: 16px;
+}
+
+@media print {
+  :root {
+    --paper: #ffffff;
+    --page: #ffffff;
+    --ink: #000000;
+    --ink-2: #222222;
+    --ink-3: #444444;
+    --rule: #bbbbbb;
+    --rule-strong: #888888;
+    --signature: #1a2a9a;
+    color-scheme: light;
+  }
+  body {
+    font-size: 11pt;
+  }
+}
