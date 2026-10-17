@@ -12,7 +12,7 @@ const envelope=z.object({jsonrpc:z.literal("2.0"),id:z.union([z.string(),z.numbe
 function rpcError(id:Id,code:number,message:string,status=400,data?:unknown){return Response.json({jsonrpc:"2.0",id,error:{code,message,...(data?{data}:{})}},{status,headers});}
 function rpcResult(id:Id,result:Record<string,unknown>){return Response.json({jsonrpc:"2.0",id,result:{resultType:"complete",...result,_meta:{"io.modelcontextprotocol/serverInfo":serverInfo}}},{headers});}
 
-/** Stateless JSON response profile. Site dispatch owns authentication/OAuth; no sessions or SSE streams. */
+/** Stateless JSON response profile. The Netlify function verifies an owner-scoped API key before dispatch; no sessions or SSE streams. */
 export async function handleMcp(request:Request,invoke:ToolInvoker):Promise<Response>{
  if(request.method!=="POST")return new Response(null,{status:405,headers:{...headers,Allow:"POST, OPTIONS"}});
  const origin=request.headers.get("origin");
