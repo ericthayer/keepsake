@@ -37,9 +37,15 @@ Anonymous visitors see the labeled example only. Every data API requires a verif
 
 Postgres integration tests execute the actual migration using PGlite. The in-process test adapter serializes its single connection; production uses Postgres clients and owner-row locks. These tests verify schema, transactions, rollback, version conflicts, key revocation, owner isolation, and MCP dispatch. They do not replace deployed Identity and Netlify routing verification.
 
+## Working Sites application
+
+The published application is available at https://keepsake-family-locker.ethayer-design.chatgpt.site/.
+
+Its complete, independently buildable source is preserved in [`sites/keepsake`](sites/keepsake), including the existing Site identity, D1 migrations, ChatGPT authentication, design scaffold, and standalone HTML export. See its [deployment runbook](sites/keepsake/docs/SITES_DEPLOYMENT.md). Run Sites checks from that directory with its own dependencies; root checks intentionally exclude that separate runtime. GitHub pushes do not automatically publish the Sites URL. Maintain both copies deliberately until the hosting decision is finalized; changes to one application do not automatically update the other.
+
 ## Migration from Sites
 
-Sites authentication and D1 bindings have been removed from this branch. Identity accounts are new and do not inherit the old ChatGPT user IDs. Export a version 1 Keepsake JSON backup from the original Sites app, sign into the Netlify app, and restore it into an empty locker. Review and keep the original copy until the restored records, contacts, and note have been checked. No production data is copied or deleted automatically. Encrypted legacy `.locker` files are not supported by the JSON restore flow.
+The root Netlify application uses its own authentication and database; it does not use the Sites bindings. Identity accounts are new and do not inherit the old ChatGPT user IDs. Export a version 1 Keepsake JSON backup from the original Sites app, sign into the Netlify app, and restore it into an empty locker. Review and keep the original copy until the restored records, contacts, and note have been checked. No production data is copied or deleted automatically. Encrypted legacy `.locker` files are not supported by the JSON restore flow.
 
 ## Agent access
 
