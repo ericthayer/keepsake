@@ -5,6 +5,12 @@
 [build.environment]
   NODE_VERSION = "22"
 
+# Declared explicitly so the Next.js Runtime always runs. Without it the
+# production build published the raw .next folder and every page returned 404.
+# Unpinned on purpose: Netlify resolves the current runtime each build.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
