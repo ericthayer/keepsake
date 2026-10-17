@@ -1,5 +1,5 @@
 "use client";
-import { Printer, ArrowUpRight, Heart, Phone, Mail, MapPin, BookOpen, Check, Circle, Pencil } from "lucide-react";
+import { Printer, ArrowUpRight, Heart, Phone, Mail, MapPin, Pencil } from "lucide-react";
 import { categoryLabels, formatDate, type Locker } from "../../lib/locker";
 import { CategoryIcon, BrandMark } from "./ui";
 export function FamilyGuide({locker,sample,onEdit}:{locker:Locker;sample:boolean;onEdit:()=>void}) {

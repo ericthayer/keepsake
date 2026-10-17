@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { LayoutGrid, FolderClosed, Files, UsersRound, BookOpen, ArrowUpRight, ArrowRight, Plus, Search, LockKeyhole, ChevronDown, ChevronRight, Check, CheckCheck, Circle, Ellipsis, Heart, Leaf, Download, Upload, Settings2, Menu, X, ShieldCheck, Pencil, Trash2, MapPin, Globe, Mail, Phone, FileText, RefreshCw, Info, Sparkles } from "lucide-react";
+import { LayoutGrid, FolderClosed, Files, UsersRound, BookOpen, ArrowUpRight, ArrowRight, Plus, Search, LockKeyhole, ChevronRight, Check, CheckCheck, Circle, Heart, Leaf, Download, Upload, Settings2, Menu, X, ShieldCheck, Pencil, Trash2, MapPin, Mail, Phone, Info, Sparkles } from "lucide-react";
 import { blankRecord, categoryLabels, categories, emptyLocker, formatDate, lockerSchema, lockerEnvelopeSchema, type Locker, type LockerRecord, type TrustedContact } from "../../lib/locker";
 import { sampleLocker } from "../../lib/sample";
 import { BrandMark, CategoryIcon, EmptyState, FolderIllustration, Modal } from "./ui";
@@ -9,6 +9,7 @@ import { FamilyGuide } from "./family-guide";
 import { AgentChangeReview } from "./agent/change-review";
 import { AgentConnectionDetails } from "./agent/connection-details";
 import { AppearanceControl } from "./appearance";
+import { clearReviewProposal, useReviewProposal } from "../../hooks/use-review-proposal";
 
 type View = "overview"|"locker"|"documents"|"circle"|"guide";
 type Dialog = "record"|"contact"|"details"|"contactDetails"|"note"|"setup"|"settings"|"privacy"|"agent"|null;
@@ -17,13 +18,13 @@ const nav = [{id:"overview",label:"Overview",icon:LayoutGrid},{id:"locker",label
 export function LockerApp({ownerName}:{ownerName:string}) {
  const [view,setView]=useState<View>("overview");const [locker,setLocker]=useState<Locker>(sampleLocker);const [sample,setSample]=useState(true);const [version,setVersion]=useState(0);
  const [connection,setConnection]=useState<"loading"|"ready"|"error"|"signin">("loading");const [busy,setBusy]=useState(false);const saving=useRef(false);
- const [dialog,setDialog]=useState<Dialog>(null);const [record,setRecord]=useState<LockerRecord|null>(null);const [contact,setContact]=useState<TrustedContact|null>(null);
+ const [dialog,setDialogValue]=useState<Dialog>(null);const [record,setRecord]=useState<LockerRecord|null>(null);const [contact,setContact]=useState<TrustedContact|null>(null);
  const [query,setQuery]=useState("");const [category,setCategory]=useState("all");const [sort,setSort]=useState("recent");const [mobile,setMobile]=useState(false);const [toast,setToast]=useState("");const [error,setError]=useState("");const [note,setNote]=useState("");const [confirmDelete,setConfirmDelete]=useState(false);
  const fileInput=useRef<HTMLInputElement>(null);
- const [reviewProposal,setReviewProposal]=useState<string|null>(null);
- useEffect(()=>{const id=new URLSearchParams(window.location.search).get("review");if(id&&id.length<=80)setReviewProposal(id);},[]);
+ const reviewProposal=useReviewProposal();
+ function setDialog(next:Dialog){setDialogValue(next);setError("");setConfirmDelete(false);}
  async function reloadFromAgent(){const response=await fetch("/api/locker",{cache:"no-store"});if(!response.ok)throw new Error("The change may be saved, but the page could not reload. Reload before making another change.");const data=lockerEnvelopeSchema.parse(await response.json());setLocker(data.locker??structuredClone(emptyLocker));setVersion(data.version);setSample(data.locker===null);setConnection("ready");setToast("Agent change applied to your locker.");}
- function closeReview(){setReviewProposal(null);const url=new URL(window.location.href);url.searchParams.delete("review");window.history.replaceState(null,"",url.pathname+url.search+url.hash);}
+ const closeReview=clearReviewProposal;
  useEffect(()=>{let active=true;fetch("/api/locker",{cache:"no-store"}).then(async r=>{if(r.status===401){if(active)setConnection("signin");return;}if(!r.ok)throw new Error();const data=lockerEnvelopeSchema.parse(await r.json());if(!active)return;if(data.locker){setLocker(data.locker);setSample(false);}setVersion(data.version);setConnection("ready");}).catch(()=>{if(active)setConnection("error");});return()=>{active=false;};},[]);
  useEffect(()=>{
   const controller=new AbortController();
@@ -33,7 +34,6 @@ export function LockerApp({ownerName}:{ownerName:string}) {
   return()=>{controller.abort();window.clearInterval(timer);window.removeEventListener("focus",visible);document.removeEventListener("visibilitychange",visible);};
  },[connection,dialog,reviewProposal,version]);
  useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(""),5000);return()=>clearTimeout(timer);},[toast]);
- useEffect(()=>{setError("");setConfirmDelete(false);},[dialog]);
  function navigate(next:View){setView(next);setMobile(false);setQuery("");setCategory("all");window.scrollTo({top:0,behavior:"smooth"});}
  function close(){if(!saving.current)setDialog(null);}
  async function commit(next:Locker,message="Saved to your locker") {
@@ -59,6 +59,7 @@ export function LockerApp({ownerName}:{ownerName:string}) {
  const firstRecords=view==="overview"?accounts.slice(0,4):visibleRecords;
  const shownName=ownerName==="Your"?"My personal locker":`${ownerName}’s personal locker`;
  return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a>
+ {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Reload the document to reset transient locker UI state. */}
  <aside className={`sidebar ${mobile?"is-open":""}`} aria-label="Primary navigation"><a href="/" className="brand"><BrandMark/><span>keepsake<span className="brand-period">.</span></span></a><div className="workspace-label"><span className="workspace-avatar"><Heart size={16}/></span><span>{shownName}<small>A little more prepared</small></span><LockKeyhole size={12}/></div><span className="nav-caption">YOUR SPACE</span><nav>{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>navigate(id)} className={`nav-item ${view===id?"active":""}`} aria-current={view===id?"page":undefined}><Icon size={18} strokeWidth={1.65}/><span>{label}</span>{id==="locker"&&<span className="nav-count">{accounts.length}</span>}{id==="documents"&&<span className="nav-count">{documents.length}</span>}{id==="guide"&&<ArrowUpRight size={14} className="nav-end"/>}</button>)}</nav><div className="sidebar-bottom"><div className="care-card"><Leaf size={21} strokeWidth={1.4}/><h3>A thoughtful thing to do.</h3><p>A little preparation today can mean everything to someone tomorrow.</p><button onClick={()=>navigate("guide")}>See your family guide <ArrowRight size={14}/></button></div><AppearanceControl compact/><button className="sidebar-help" onClick={()=>setDialog("privacy")}><ShieldCheck size={16}/>Privacy & how it works<ArrowUpRight size={14}/></button><button className="profile" onClick={()=>setDialog("settings")}><span className="profile-avatar">{ownerName==="Your"?"ME":ownerName.slice(0,2).toUpperCase()}</span><span>{ownerName==="Your"?"My workspace":ownerName}<small>Personal account</small></span><Settings2 size={17}/></button></div></aside>
  {mobile&&<button className="mobile-scrim" aria-label="Close navigation" onClick={()=>setMobile(false)}/>}
  <div className="main-shell"><header className="topbar"><div className="breadcrumb"><button className="icon-button mobile-menu" aria-label="Open navigation" onClick={()=>setMobile(!mobile)}><Menu size={21}/></button><span>Personal locker</span><ChevronRight size={13}/><strong>{nav.find(n=>n.id===view)?.label}</strong></div><div className="topbar-actions"><span className="privacy-indicator"><span/>Private workspace</span><button className="icon-button" aria-label="Backup and settings" onClick={()=>setDialog("settings")}><Download size={17}/></button><button className="family-view-button" onClick={()=>navigate("guide")}><BookOpen size={15}/><span>Family view</span><ArrowUpRight size={14}/></button></div></header>

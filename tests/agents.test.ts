@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { emptyLocker, lockerSchema } from "../lib/locker";
-import { agentTools, buildChange, changeSchema } from "../lib/agent-contract";
+import { agentTools, changeSchema } from "../lib/agent-contract";
 import { LockerStore } from "../lib/server/locker-store";
 import { AgentService } from "../lib/server/agent-service";
 import { handleMcp } from "../lib/server/mcp-protocol";
@@ -91,9 +91,9 @@ function request(method:string,params:Record<string,unknown>={},options:{modern?
 }
 const okInvoke=async()=>({content:[{type:"text" as const,text:"ok"}]});
 test("modern discovery, tools, legacy initialization, and notifications",async()=>{
- const discover=await handleMcp(request("server/discover"),okInvoke);assert.equal(discover.status,200);const body=await discover.json() as any;assert.equal(body.result.resultType,"complete");assert.ok(body.result.supportedVersions.includes("2026-07-28"));
- const list=await handleMcp(request("tools/list"),okInvoke);assert.equal((await list.json() as any).result.tools.length,8);
- const legacy=await handleMcp(request("initialize",{protocolVersion:"2025-11-25",capabilities:{},clientInfo:{name:"test",version:"1"}},{modern:false}),okInvoke);assert.equal((await legacy.json() as any).result.protocolVersion,"2025-11-25");
+ const discover=await handleMcp(request("server/discover"),okInvoke);assert.equal(discover.status,200);const body=await discover.json() as {result:{resultType:string;supportedVersions:string[]}};assert.equal(body.result.resultType,"complete");assert.ok(body.result.supportedVersions.includes("2026-07-28"));
+ const list=await handleMcp(request("tools/list"),okInvoke);assert.equal((await list.json() as {result:{tools:unknown[]}}).result.tools.length,8);
+ const legacy=await handleMcp(request("initialize",{protocolVersion:"2025-11-25",capabilities:{},clientInfo:{name:"test",version:"1"}},{modern:false}),okInvoke);assert.equal((await legacy.json() as {result:{protocolVersion:string}}).result.protocolVersion,"2025-11-25");
  let calls=0;const notification=await handleMcp(request("tools/call",{name:"keepsake_apply_change",arguments:{}},{modern:false,body:JSON.stringify({jsonrpc:"2.0",method:"tools/call",params:{name:"keepsake_apply_change",arguments:{}}})}),async()=>{calls++;return okInvoke();});assert.equal(notification.status,202);assert.equal(calls,0);
 });
 test("RPC rejects batch, malformed JSON, header mismatch, cross-origin, oversized and unknown calls",async()=>{
@@ -111,6 +111,6 @@ test("RPC rejects batch, malformed JSON, header mismatch, cross-origin, oversize
 });
 test("MCP dispatch reaches the real service and reports tool-level failures",async()=>{
  const f=fixture();const invoke=(name:string,args:unknown)=>f.service.call("owner-a",name,args);
- const response=await handleMcp(request("tools/call",{name:"keepsake_get_overview",arguments:{}}),invoke);const body=await response.json() as any;assert.equal(body.result.structuredContent.accounts,0);
- const invalid=await handleMcp(request("tools/call",{name:"keepsake_apply_change",arguments:{proposalId:"missing",userConfirmed:false}}),invoke);assert.equal((await invalid.json() as any).result.isError,true);f.sqlite.close();
+ const response=await handleMcp(request("tools/call",{name:"keepsake_get_overview",arguments:{}}),invoke);const body=await response.json() as {result:{structuredContent:{accounts:number}}};assert.equal(body.result.structuredContent.accounts,0);
+ const invalid=await handleMcp(request("tools/call",{name:"keepsake_apply_change",arguments:{proposalId:"missing",userConfirmed:false}}),invoke);assert.equal((await invalid.json() as {result:{isError:boolean}}).result.isError,true);f.sqlite.close();
 });

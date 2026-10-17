@@ -1,29 +1,13 @@
 "use client";
-import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useId, useSyncExternalStore, type ReactNode } from "react";
 import { Sun, Moon, Monitor } from "lucide-react";
-import { appearanceStorageKey, appearanceOptions, validAppearance, resolveAppearance, type Appearance } from "../../lib/appearance";
+import { appearanceOptions, type Appearance } from "../../lib/appearance";
+import { getAppearanceSnapshot, getServerAppearanceSnapshot, setAppearance, subscribeAppearance } from "../../lib/appearance-client";
 
 type AppearanceContextValue = { appearance:Appearance; setAppearance:(value:Appearance)=>void };
 const AppearanceContext=createContext<AppearanceContextValue|null>(null);
 export function AppearanceProvider({children}:{children:ReactNode}){
- const [appearance,setValue]=useState<Appearance>("system");
- const current=useRef<Appearance>("system");
- function apply(value:Appearance){
-  current.current=value;setValue(value);
-  document.documentElement.dataset.appearance=value;
-  document.documentElement.dataset.theme=resolveAppearance(value,typeof window.matchMedia==="function"&&window.matchMedia("(prefers-color-scheme: dark)").matches);
- }
- function setAppearance(value:Appearance){const next=validAppearance(value);apply(next);try{window.localStorage.setItem(appearanceStorageKey,next);}catch{/* Still usable when browser storage is unavailable. */}}
- useEffect(()=>{
-  let preference=validAppearance(document.documentElement.dataset.appearance);
-  try{preference=validAppearance(window.localStorage.getItem(appearanceStorageKey));}catch{}
-  apply(preference);
-  const media=typeof window.matchMedia==="function"?window.matchMedia("(prefers-color-scheme: dark)"):null;
-  const systemChanged=()=>{if(current.current==="system")apply("system");};
-  const storageChanged=(event:StorageEvent)=>{if(event.key===appearanceStorageKey||event.key===null)apply(validAppearance(event.newValue));};
-  media?.addEventListener("change",systemChanged);window.addEventListener("storage",storageChanged);
-  return()=>{media?.removeEventListener("change",systemChanged);window.removeEventListener("storage",storageChanged);};
- },[]);
+ const appearance=useSyncExternalStore(subscribeAppearance,getAppearanceSnapshot,getServerAppearanceSnapshot);
  return <AppearanceContext.Provider value={{appearance,setAppearance}}>{children}</AppearanceContext.Provider>;
 }
 const icons={light:Sun,dark:Moon,system:Monitor};

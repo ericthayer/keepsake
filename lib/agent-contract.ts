@@ -40,7 +40,7 @@ const specs = {
 export type AgentToolName = keyof typeof specs;
 export const agentToolNames = Object.keys(specs).sort() as AgentToolName[];
 export function getToolSpec(name:string) { return Object.prototype.hasOwnProperty.call(specs,name)?specs[name as AgentToolName]:undefined; }
-export const agentTools = agentToolNames.map(name=>{const spec=specs[name];const json=zodToJsonSchema(spec.schema,{$refStrategy:"none"});const {$schema:_,...inputSchema}=json;return {name,title:spec.title,description:spec.description,inputSchema,annotations:spec.annotations};});
+export const agentTools = agentToolNames.map(name=>{const spec=specs[name];const inputSchema=zodToJsonSchema(spec.schema,{$refStrategy:"none"});delete inputSchema.$schema;return {name,title:spec.title,description:spec.description,inputSchema,annotations:spec.annotations};});
 export function parseToolInput(name:AgentToolName,input:unknown):unknown { return specs[name].schema.parse(input); }
 export function toolSuccess(data:Record<string,unknown>):AgentToolResult {return {content:[{type:"text",text:JSON.stringify(data)}],structuredContent:data};}
 export function toolFailure(message:string,code="TOOL_ERROR"):AgentToolResult {return {content:[{type:"text",text:JSON.stringify({error:message,code})}],structuredContent:{error:message,code},isError:true};}
