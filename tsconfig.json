@@ -42,6 +42,7 @@
   "exclude": [
     "node_modules",
     ".netlify",
-    "dist"
+    "dist",
+    "sites/keepsake"
   ]
 }

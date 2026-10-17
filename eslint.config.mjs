@@ -13,6 +13,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "dist/**",
     ".sites-runtime/**",
+    "sites/keepsake/**",
     "next-env.d.ts",
   ]),
   {
