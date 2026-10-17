@@ -1,20 +1,11 @@
 import { z } from "zod";
-import { emptyLocker, lockerSchema } from "../locker";
+import { emptyLocker } from "../locker";
 import { buildChange, getToolSpec, parseToolInput, toolSuccess, toolFailure, type AgentToolName, type AgentToolResult, type ChangePreview, type LockerChange, type ProposalView } from "../agent-contract";
-import { LockerError, LockerStore } from "./locker-store";
+import { LockerError, LockerStore, type ProposalRow } from "./locker-store";
 
-type ProposalRow={id:string;owner_id:string;candidate_json:string;preview_json:string;expected_version:number;applied_version:number|null;created_at:string;expires_at:string};
-export const applyProposalSql = `INSERT INTO lockers (owner_id, state_json, version, updated_at)
-SELECT ?, ?, 1, ? WHERE (? = 0 OR EXISTS (SELECT 1 FROM lockers WHERE owner_id = ? AND version = ?))
-AND EXISTS (SELECT 1 FROM agent_proposals WHERE id = ? AND owner_id = ? AND applied_version IS NULL AND expires_at > ?)
-ON CONFLICT(owner_id) DO UPDATE SET state_json = excluded.state_json, version = lockers.version + 1, updated_at = excluded.updated_at
-WHERE lockers.version = ?`;
-export const markProposalAppliedSql = `UPDATE agent_proposals SET applied_version = ?
-WHERE id = ? AND owner_id = ? AND applied_version IS NULL AND expires_at > ? AND changes() = 1
-AND EXISTS (SELECT 1 FROM lockers WHERE owner_id = ? AND version = ? AND state_json = ?)`;
 export class AgentService {
  constructor(public readonly store:LockerStore,private readonly clock:()=>Date=()=>new Date(),private readonly uuid:()=>string=()=>crypto.randomUUID(),private readonly siteOrigin=""){}
- private async row(ownerId:string,id:string){const row=await this.store.db.prepare("SELECT * FROM agent_proposals WHERE id = ? AND owner_id = ?").bind(id,ownerId).first<ProposalRow>();if(!row)throw new LockerError("Proposed change not found in your locker.",404,"NOT_FOUND");return row;}
+ private row(ownerId:string,id:string){return this.store.proposal(ownerId,id);}
  private view(row:ProposalRow,currentVersion:number):ProposalView {return {proposalId:row.id,expectedVersion:row.expected_version,expiresAt:row.expires_at,status:row.applied_version!==null?"applied":row.expires_at<=this.clock().toISOString()?"expired":currentVersion!==row.expected_version?"conflict":"pending",appliedVersion:row.applied_version,preview:JSON.parse(row.preview_json) as ChangePreview,reviewPath:`/?review=${encodeURIComponent(row.id)}`,confirmationRequired:true,...(this.siteOrigin?{reviewUrl:new URL(`/?review=${encodeURIComponent(row.id)}`,this.siteOrigin).href}:{})};}
  async getProposal(ownerId:string,id:string){const [row,current]=await Promise.all([this.row(ownerId,id),this.store.read(ownerId)]);return this.view(row,current.version);}
  async prepare(ownerId:string,expectedVersion:number,change:LockerChange){
@@ -24,27 +15,11 @@ export class AgentService {
   const {locker,preview}=buildChange(snapshot.locker??structuredClone(emptyLocker),change,this.uuid(),iso);
   const candidate=JSON.stringify(locker);
   if(new TextEncoder().encode(candidate).length>480000)throw new LockerError("Locker is too large.",413,"SIZE_LIMIT");
-  await this.store.db.prepare("DELETE FROM agent_proposals WHERE owner_id = ? AND expires_at <= ?").bind(ownerId,iso).run();
   const proposalId=this.uuid();
-  const row=await this.store.db.prepare("INSERT INTO agent_proposals (id, owner_id, candidate_json, preview_json, expected_version, created_at, expires_at) SELECT ?, ?, ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM agent_proposals WHERE owner_id = ? AND expires_at > ?) < 20 RETURNING *").bind(proposalId,ownerId,candidate,JSON.stringify(preview),expectedVersion,iso,expires,ownerId,iso).first<ProposalRow>();
-  if(!row)throw new LockerError("There are too many recent proposals. Review an existing proposal or try again after it expires.",429,"PROPOSAL_LIMIT");
+  const row=await this.store.createProposal({id:proposalId,owner_id:ownerId,candidate_json:candidate,preview_json:JSON.stringify(preview),expected_version:expectedVersion,applied_version:null,created_at:iso,expires_at:expires});
   return this.view(row,snapshot.version);
  }
- async apply(ownerId:string,id:string){
-  const proposal=await this.row(ownerId,id);
-  if(proposal.applied_version!==null)return {proposalId:id,applied:true,version:proposal.applied_version,alreadyApplied:true};
-  const iso=this.clock().toISOString();
-  if(proposal.expires_at<=iso)throw new LockerError("This preview expired. Prepare a fresh change before applying it.",410,"PROPOSAL_EXPIRED");
-  const next=JSON.stringify(lockerSchema.parse(JSON.parse(proposal.candidate_json))),expected=proposal.expected_version;
-  // D1 batch is transactional. The locker write and proposal receipt succeed together.
-  await this.store.db.batch([
-    this.store.db.prepare(applyProposalSql).bind(ownerId,next,iso,expected,ownerId,expected,id,ownerId,iso,expected),
-    this.store.db.prepare(markProposalAppliedSql).bind(expected+1,id,ownerId,iso,ownerId,expected+1,next),
-  ]);
-  const after=await this.row(ownerId,id);
-  if(after.applied_version===null)throw new LockerError("Your locker changed after this preview. Prepare a new change; nothing was overwritten.",409,"VERSION_CONFLICT");
-  return {proposalId:id,applied:true,version:after.applied_version,alreadyApplied:false};
- }
+ async apply(ownerId:string,id:string){return this.store.applyProposal(ownerId,id,this.clock().toISOString());}
  async call(ownerId:string,name:string,input:unknown):Promise<AgentToolResult>{
   if(!getToolSpec(name))return toolFailure("Unknown Keepsake tool.","UNKNOWN_TOOL");
   try {

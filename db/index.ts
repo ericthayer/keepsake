@@ -1,13 +1,8 @@
-import { env } from "cloudflare:workers";
-import { drizzle } from "drizzle-orm/d1";
-import * as schema from "./schema";
+import { getDatabase } from "@netlify/database";
+import { LockerStore, type Database } from "../lib/server/locker-store";
 
-export function getDb() {
-  if (!env.DB) {
-    throw new Error(
-      "Cloudflare D1 binding `DB` is unavailable. Set the `d1` field in .openai/hosting.json to `DB` or let your control plane inject the real binding values before using the database."
-    );
-  }
-
-  return drizzle(env.DB, { schema });
+export function getLockerStore() {
+  // Both SDK pool implementations expose the same query/connect/release API.
+  const database = getDatabase().pool as unknown as Database;
+  return new LockerStore(database);
 }

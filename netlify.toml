@@ -1,0 +1,20 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[dev]
+  command = "npm run dev"
+  targetPort = 3000
+  framework = "#custom"
+
+[[redirects]]
+  from = "/signin-with-chatgpt"
+  to = "/login"
+  status = 302

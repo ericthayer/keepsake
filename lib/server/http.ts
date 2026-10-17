@@ -1,10 +1,5 @@
-import { env } from "cloudflare:workers";
-import { AgentService } from "./agent-service";
-import { LockerStore } from "./locker-store";
 export const privateHeaders={"Cache-Control":"private, no-store","Vary":"Cookie, Authorization","X-Content-Type-Options":"nosniff"};
 export function jsonResponse(body:unknown,status=200){return Response.json(body,{status,headers:privateHeaders});}
-export function getLockerStore(){if(!env.DB)throw new Error("Database unavailable");return new LockerStore(env.DB);}
-export function getAgentService(origin=""){return new AgentService(getLockerStore(),undefined,undefined,origin);}
 export function sameOrigin(request:Request,requireOrigin=true){const origin=request.headers.get("origin");if(!origin)return !requireOrigin;return origin===new URL(request.url).origin;}
 export async function readJson(request:Request,maxBytes=500000):Promise<unknown>{
  if(request.headers.get("content-type")?.split(";")[0].trim().toLowerCase()!=="application/json")throw new HttpError("Use application/json.",415);
