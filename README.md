@@ -19,7 +19,7 @@ npm run build
 
 ## Deployment
 
-The repository contains `netlify.toml`: build `npm run build`, publish `.next`, and bundle modern Functions from `netlify/functions`. Netlify automatically supplies its Next.js adapter. No static SPA fallback is used.
+The repository contains `netlify.toml`: build `npm run build`, publish `.next`, and bundle modern Functions from `netlify/functions`. It declares the Next.js Runtime (`@netlify/plugin-nextjs`) explicitly, unpinned, so Netlify always runs the current adapter. No static SPA fallback is used.
 
 Before production cutover, follow [the deployment runbook](docs/NETLIFY_DEPLOYMENT.md). Enable Identity, choose **Invite only**, and invite the owner. The `@netlify/database` dependency and committed SQL migration enable automatic database provisioning on supported Netlify plans. Database usage consumes Netlify credits; verify the existing account supports Database before publishing.
 
