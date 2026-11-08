@@ -9,6 +9,7 @@ Target project: `keep5ake` (`00198131-fbbe-4e50-b11b-bd066dd3462f`).
 3. Netlify automatically provisions Postgres from `@netlify/database` and applies migrations in `netlify/database/migrations`. Confirm Database is available on the existing account's credit-based plan. Deploy Preview databases are separate branches and can contain copies of production data; protect previews before sharing links.
 4. Under **Project configuration → Build & deploy → Continuous deployment**, set the production branch to **main**. The published project was previously following `feature/life-locker-v1`.
 5. Merge the migration into `main` after preview verification. Check that the deploy includes the Next.js runtime and both `api` and `mcp` Functions, and that database migrations complete before publication.
+6. In [Forms](https://app.netlify.com/projects/keep5ake/forms), choose **Enable form detection**, then redeploy. Feedback and bug reports post to the `keepsake-feedback` form declared in `public/__forms.html`. Under **Forms → Form notifications**, add an email notification to a Netlify team member's address so reports reach you. Check the **Spam** list if a report seems missing; Akismet filters every submission.
 
 Identity configuration and production-branch selection require Netlify dashboard settings; the available project connector cannot change them. Identity is not available under `netlify dev`; test it on the deployed preview. A missing Identity callback, unreachable Identity endpoint, or failed provider return must be fixed in those settings before continuing.
 
@@ -21,6 +22,8 @@ Identity configuration and production-branch selection require Netlify dashboard
 - Export JSON and restore it into a separate empty test locker. Compare records, contacts, and the family note.
 - Create an agent key and connect using `Authorization: Bearer <key>`. Discover tools, prepare a change, review its before/after values, approve it explicitly, and read it back. Revoke the key and verify its next call returns 401.
 - Prepare a proposal, edit the locker in the UI, and verify the old proposal fails with a version conflict.
+- In settings, open **Account details**, change name, phone, and address, reload, and verify they persist and the sidebar name updates. Request an email change, open the confirmation link sent to the new address, and sign in with it.
+- In settings, send one feedback message and one bug report. Both appear under Forms → `keepsake-feedback`, the bug report with browser context.
 
 ## Move existing data
 
