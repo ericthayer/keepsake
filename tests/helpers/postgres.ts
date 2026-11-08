@@ -1,12 +1,13 @@
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { AgentService } from "../../lib/server/agent-service";
 import { LockerStore, type Database, type Query } from "../../lib/server/locker-store";
 
 export async function fixture() {
   const pg = new PGlite();
-  await pg.exec(readFileSync(join(process.cwd(), "netlify/database/migrations/20261017072000_create_locker.sql"), "utf8"));
+  const migrations = join(process.cwd(), "netlify/database/migrations");
+  for (const file of readdirSync(migrations).filter(name => name.endsWith(".sql")).sort()) await pg.exec(readFileSync(join(migrations, file), "utf8"));
   const query: Query = async (sql, values) => pg.query(sql, values);
   // PGlite has one connection. Serialize transactions in this test adapter;
   // production uses separate pg clients and SELECT ... FOR UPDATE owner locks.
