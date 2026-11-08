@@ -9,14 +9,16 @@ import { FamilyGuide } from "./family-guide";
 import { AgentChangeReview } from "./agent/change-review";
 import { AgentConnectionDetails } from "./agent/connection-details";
 import { AppearanceControl } from "./appearance";
-import { AccountSettings } from "./account-settings";
-import { FeedbackForm } from "./feedback-form";
+import dynamic from "next/dynamic";
 import type { Profile } from "../../lib/account";
 import { logout } from "@netlify/identity";
 import { clearReviewProposal, useReviewProposal } from "../../hooks/use-review-proposal";
 
 type View = "overview"|"locker"|"documents"|"circle"|"guide";
 type Dialog = "record"|"contact"|"details"|"contactDetails"|"note"|"setup"|"settings"|"privacy"|"agent"|"account"|"feedback"|null;
+// Settings sub-dialogs load on demand so they stay out of the initial bundle.
+const AccountSettings=dynamic(()=>import("./account-settings").then(m=>m.AccountSettings),{ssr:false});
+const FeedbackForm=dynamic(()=>import("./feedback-form").then(m=>m.FeedbackForm),{ssr:false});
 const nav = [{id:"overview",label:"Overview",icon:LayoutGrid},{id:"locker",label:"My locker",icon:FolderClosed},{id:"documents",label:"Documents",icon:Files},{id:"circle",label:"Trusted circle",icon:UsersRound},{id:"guide",label:"Family guide",icon:BookOpen}] as const;
 
 export function LockerApp({ownerName,onProfileSaved}:{ownerName:string;onProfileSaved?:(profile:Profile)=>void}) {
