@@ -4,6 +4,7 @@ import { createAgentKey, listAgentKeys, resolveAgentOwner, revokeAgentKey } from
 import { handleApi } from "../lib/server/api-handler";
 import { handleRemoteMcp } from "../lib/server/mcp-handler";
 import { emptyLocker } from "../lib/locker";
+import type { LockerStore } from "../lib/server/locker-store";
 import { fixture } from "./helpers/postgres";
 
 function request(path: string, method = "GET", body?: unknown, origin = "https://keepsake.example") {
@@ -71,4 +72,56 @@ test("competing first saves cannot overwrite each other", async () => {
     assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
     assert.equal((await f.store.read("owner-a")).version, 1);
   } finally { await f.pg.close(); }
+});
+
+test("unexpected server failures are logged without leaking details to clients or locker data to logs", async t => {
+  const logged: string[] = [];
+  t.mock.method(console, "error", (...args: unknown[]) => { logged.push(args.map(String).join(" ")); });
+  const failingStore = () => { throw new Error("connect ECONNREFUSED 10.0.0.5:5432"); };
+  const req = request("/api/locker", "PUT", { locker: { ...emptyLocker, message: "PRIVATE-FAMILY-NOTE" }, version: 0 });
+  req.headers.set("x-nf-request-id", "req-123");
+  const response = await handleApi(req, { id: "owner-a", email: "owner@example.com" }, failingStore);
+  assert.equal(response.status, 503);
+  const body = await response.text();
+  assert.ok(!body.includes("ECONNREFUSED"));
+  assert.equal(logged.length, 1);
+  const entry = JSON.parse(logged[0]) as Record<string, unknown>;
+  assert.deepEqual({ scope: entry.scope, route: entry.route, method: entry.method, requestId: entry.requestId, error: entry.error }, { scope: "api", route: "/api/locker", method: "PUT", requestId: "req-123", error: "Error" });
+  assert.match(String(entry.message), /ECONNREFUSED/);
+  assert.ok(!logged[0].includes("PRIVATE-FAMILY-NOTE") && !logged[0].includes("owner@example.com") && !logged[0].includes("owner-a"));
+
+  const mcpReq = request("/mcp", "POST", {}); mcpReq.headers.set("Authorization", "Bearer ks_" + "a".repeat(43));
+  assert.equal((await handleRemoteMcp(mcpReq, failingStore)).status, 503);
+  assert.equal(logged.length, 2);
+  const mcpEntry = JSON.parse(logged[1]) as Record<string, unknown>;
+  assert.equal(mcpEntry.scope, "mcp");
+  assert.ok(typeof mcpEntry.requestId === "string" && mcpEntry.requestId.length > 0);
+  assert.ok(!logged[1].includes("ks_"));
+});
+
+test("expected client errors are not logged as server failures", async t => {
+  const logged: unknown[] = [];
+  t.mock.method(console, "error", (...args: unknown[]) => { logged.push(args); });
+  const f = await fixture();
+  try {
+    assert.equal((await handleApi(request("/api/locker", "PUT", { locker: {}, version: 0 }), { id: "owner-a" }, () => f.store)).status, 400);
+    assert.equal((await handleApi(request("/api/locker", "PUT", { locker: emptyLocker, version: 5 }), { id: "owner-a" }, () => f.store)).status, 409);
+    assert.equal(logged.length, 0);
+  } finally { await f.pg.close(); }
+});
+
+test("agent tool calls that hit an unexpected failure are logged on both the UI and remote endpoints", async t => {
+  const logged: string[] = [];
+  t.mock.method(console, "error", (...args: unknown[]) => { logged.push(args.map(String).join(" ")); });
+  const brokenStore = {
+    db: { query: async () => ({ rows: [{ owner_id: "owner-a" }] }) },
+    read: async () => { throw new Error("terminating connection due to administrator command"); },
+  } as unknown as LockerStore;
+  const call = { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "keepsake_get_overview", arguments: {} } };
+  const ui = await handleApi(request("/api/agent", "POST", { name: "keepsake_get_overview", arguments: {} }), { id: "owner-a" }, () => brokenStore);
+  assert.deepEqual(((await ui.json()) as { isError: boolean; structuredContent: { code: string } }).structuredContent.code, "SERVICE_UNAVAILABLE");
+  const mcpReq = request("/mcp", "POST", call); mcpReq.headers.set("Authorization", "Bearer ks_" + "a".repeat(43));
+  assert.equal((await handleRemoteMcp(mcpReq, () => brokenStore)).status, 200);
+  assert.deepEqual(logged.map(line => (JSON.parse(line) as { scope: string; route: string }).route), ["/api/agent", "/mcp"]);
+  assert.ok(logged.every(line => /administrator command/.test(line) && !line.includes("owner-a")));
 });
