@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { hydrateSession } from "@netlify/identity";
 import { completeAuthCallback } from "../../lib/auth-client";
 import { LockerApp } from "./locker-app";
+import { firstName } from "../../lib/account";
 
 /** Route Identity callbacks to the password/invitation flow before rendering private data. */
 export function SessionLocker() {
@@ -19,11 +20,11 @@ export function SessionLocker() {
       const response = await fetch("/api/session", { cache: "no-store" });
       if (response.ok) {
         const data = await response.json() as { user: { id: string; name: string } };
-        if (active) setOwner({ id: data.user.id, name: data.user.name.trim().split(/\s+/)[0] || "Your" });
+        if (active) setOwner({ id: data.user.id, name: firstName(data.user.name) });
       }
     }
     void hydrate().catch(() => { /* The locker request presents the connection state. */ });
     return () => { active = false; };
   }, []);
-  return <LockerApp key={owner.id} ownerName={owner.name} />;
+  return <LockerApp key={owner.id} ownerName={owner.name} onProfileSaved={profile => setOwner(previous => ({ ...previous, name: firstName(profile.fullName) }))} />;
 }

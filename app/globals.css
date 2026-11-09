@@ -64,3 +64,17 @@ select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;backg
 .sidebar .appearance-compact .appearance-options{grid-template-columns:repeat(3,auto);justify-content:space-between}
 .sidebar .appearance-compact .appearance-choice>span{font-size:var(--fs-2xs);padding:9px 7px}
 @media screen and (min-width:761px){.sidebar{overflow-y:auto;overscroll-behavior:contain}}
+
+/* Account details and feedback; reuses form, note and segmented-choice components. */
+.account-form fieldset { border: 0; padding: 0; margin: 0 0 25px; min-width: 0; }
+.account-form legend { font-family: Georgia, serif; font-size: var(--fs-xl); padding: 0; margin-bottom: 14px; color: var(--ink); }
+.account-form + .account-form { border-top: 1px solid var(--line); padding-top: 25px; margin-top: 25px; }
+.account-form .form-actions { margin-top: 0; }
+.account-form + .account-form .form-actions { border-top: 0; padding-top: 0; justify-content: flex-start; }
+.account-hint { font-size: var(--fs-sm); line-height: 1.8; color: var(--text-secondary, #5f7051); margin-bottom: 14px; }
+.form-status { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); line-height: 1.7; color: var(--text-secondary, #5f7051); margin-top: 15px; }
+.account-form .form-status, .account-form .form-error { margin: 0 0 20px; }
+.feedback-kind .appearance-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.feedback-kind legend { margin-bottom: 12px; }
+.feedback-note { margin: 20px 0 0; }
+.feedback-honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
