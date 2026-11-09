@@ -11,3 +11,11 @@ export async function readJson(request:Request,maxBytes=500000):Promise<unknown>
  try{return JSON.parse(new TextDecoder().decode(bytes));}catch{throw new HttpError("Invalid JSON.",400);}
 }
 export class HttpError extends Error{constructor(message:string,public status:number){super(message);}}
+/** One structured line per unexpected failure. Never pass request bodies, locker data, credentials, or user identifiers. */
+export function logServerError(scope:"api"|"mcp",request:Request,error:unknown){
+ const requestId=request.headers.get("x-nf-request-id")??crypto.randomUUID();
+ const name=error instanceof Error?error.name:typeof error,message=error instanceof Error?error.message:String(error);
+ const code=typeof error==="object"&&error!==null&&"code" in error?String((error as {code:unknown}).code):undefined;
+ console.error(JSON.stringify({level:"error",scope,route:new URL(request.url).pathname,method:request.method,requestId,error:name,message:message.slice(0,500),...(code?{code}:{})}));
+ return requestId;
+}

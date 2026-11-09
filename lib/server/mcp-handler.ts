@@ -1,6 +1,6 @@
 import { AgentService } from "./agent-service";
 import { resolveAgentOwner } from "./api-keys";
-import { privateHeaders } from "./http";
+import { logServerError, privateHeaders } from "./http";
 import type { LockerStore } from "./locker-store";
 import { handleMcp } from "./mcp-protocol";
 
@@ -9,10 +9,11 @@ export async function handleRemoteMcp(request: Request, getStore: () => LockerSt
   try {
     const store = getStore(), ownerId = await resolveAgentOwner(store, request);
     if (!ownerId) return unauthorized();
-    const service = new AgentService(store, undefined, undefined, new URL(request.url).origin);
-    return handleMcp(request, (name, args) => service.call(ownerId, name, args));
-  } catch {
-    return Response.json({ error: "The locker service is unavailable." }, { status: 503, headers: privateHeaders });
+    const service = new AgentService(store, undefined, undefined, new URL(request.url).origin, error => logServerError("mcp", request, error));
+    return await handleMcp(request, (name, args) => service.call(ownerId, name, args));
+  } catch (error) {
+    const requestId = logServerError("mcp", request, error);
+    return Response.json({ error: "The locker service is unavailable.", requestId }, { status: 503, headers: privateHeaders });
   }
 }
 function unauthorized() {

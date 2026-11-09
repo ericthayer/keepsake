@@ -5,7 +5,7 @@ import { authorize, listLockers } from "./access";
 import { createAgentKey, listAgentKeys, revokeAgentKey } from "./api-keys";
 import { acceptInvite, createInvite, listSharing, removeMember, revokeInvite } from "./sharing";
 import { LockerError, type LockerStore } from "./locker-store";
-import { HttpError, jsonResponse, readJson, sameOrigin } from "./http";
+import { HttpError, jsonResponse, logServerError, readJson, sameOrigin } from "./http";
 
 const lockerIdSchema = z.string().min(1).max(200);
 export type Owner = { id: string; name?: string; email?: string };
@@ -47,7 +47,7 @@ export async function handleApi(request: Request, user: Owner | null, getStore: 
     }
     if (path === "/api/agent" && request.method === "POST") {
       const input = z.object({ name: z.string().min(1).max(128), arguments: z.unknown() }).strict().parse(await readJson(request, 64000));
-      return jsonResponse(await new AgentService(store, undefined, undefined, new URL(request.url).origin).call(user.id, input.name, input.arguments ?? {}));
+      return jsonResponse(await new AgentService(store, undefined, undefined, new URL(request.url).origin, error => logServerError("api", request, error)).call(user.id, input.name, input.arguments ?? {}));
     }
     if (path === "/api/agent-keys") {
       if (request.method === "GET") return jsonResponse({ keys: await listAgentKeys(store, user.id) });
@@ -65,6 +65,7 @@ export async function handleApi(request: Request, user: Owner | null, getStore: 
   } catch (error) {
     if (error instanceof z.ZodError) return jsonResponse({ error: error.issues[0]?.message ?? "Invalid input." }, 400);
     if (error instanceof HttpError || error instanceof LockerError) return jsonResponse({ error: error.message, code: error instanceof LockerError ? error.code : "INVALID_REQUEST" }, error.status);
-    return jsonResponse({ error: "Your locker is temporarily unavailable. Please try again." }, 503);
+    const requestId = logServerError("api", request, error);
+    return jsonResponse({ error: "Your locker is temporarily unavailable. Please try again.", requestId }, 503);
   }
 }
